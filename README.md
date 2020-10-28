@@ -1,2 +1,32 @@
 # ROM-emulator
 Emulate a small size ROM with a RAM and Arduino with Intel-HEX interface
+
+![Arduino Mega 2560 with ROMemu 1.1 shield, cable and adaper/pod](romemuv1.1set.jpg)
+
+ROMemu is a combination of software and hardware that allows the usage of modern software development tools for simple, old style single board computer systems. It emulates an (EP)ROM programmer to the development software and an in-circuit ROM/RAM on the board.
+
+The software (Arduino sketch) is version 0.4.
+
+The current hardware version 1.1 uses an Arduino Mega 2560 with a shield containing a 32 kByte RAM-chip which is (partially) readable by the SBC-processor. The Arduino USB-connection is available as serial port to the development system. This allows to write Intel-hex data to the RAM.
+
+Current command set of the Arduino sketch:
+
+	-- ROM emulator 0.4 command set
+	Operational commands:
+	D[ssss[-eeee]]- Dump memory from ssss to eeee
+	Fhhhh         - AddressOffset
+	H             - This help text
+	:ssaaaatthhhh...hhcc - hex intel record
+	;ssss-eeee    - Generate hex intel data records
+	E             - Generate hex intel end record
+	Test commands
+	Bpp           - blink pin p (in hex)
+	Sssss-eeee:v  - fill a memory range with a value
+	Tp            - exercise port p
+	V             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE
+	Wpp v         - Write pin (in hex) values 0, 1
+	?             - This help text
+
+The KiCAD-files contain the projects for the shield, adapter and socket-PCBs. The first two have fixes from testing the previous produced boards.  
+
+F.J. Kraan, 2020-10-28
