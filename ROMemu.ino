@@ -9,8 +9,9 @@ ToDo: - implement host isolation control to disable non-tristate signals
         generation too. Not sure this is really useful.
 */
 
+#define VERSION "v0.5"
 
-#define SERIALBUFSIZE         50
+#define SERIALBUFSIZE         80
 char serialBuffer[SERIALBUFSIZE];
 byte setBufPointer = 0;
 
@@ -32,8 +33,9 @@ unsigned int addressOffset = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("ROMemu v0.4");
-  
+  Serial.print("ROMemu ");
+  Serial.println(VERSION);
+ 
   pinMode(LED, OUTPUT);
   offlineMode();
   delay(1000);  
@@ -128,7 +130,12 @@ void commandInterpreter() {
 }
 
 void setOffset() {
-  if (setBufPointer != 5) {
+  if (setBufPointer == 1) {
+    Serial.print("F");
+    printWord(addressOffset);
+    Serial.println();
+    return;
+  } else if (setBufPointer != 5) {
     Serial.println("ERROR F arg. size");
     clearSerialBuffer();
     return; 
@@ -284,6 +291,9 @@ void hexIntelInterpreter() {
     offlineMode();
     return;
   }
+  if (recordType != 0) { // ignore all but data records
+    return; 
+  }
   sumCheck +=  recordType;
   unsigned int i, sbOffset;
   unsigned int value;
@@ -410,12 +420,14 @@ void onlineReadMode() { // Disable host access to RAM, enable data bus, address 
 }
 
 void usage() {
-  Serial.println("-- ROM emulator 0.4 command set");
+  Serial.print("-- ROM emulator ");
+  Serial.print(VERSION);
+  Serial.println(" command set");
   Serial.println("Operational commands:");
   Serial.println("D[ssss[-eeee]]- Dump memory from ssss to eeee");
-  Serial.println("Fhhhh         - AddressOffset");
+  Serial.println("Fhhhh         - AddressOffset; subtracted from hex intel addresses");
   Serial.println("H             - This help text");
-  Serial.println(":ssaaaatthhhh...hhcc - hex intel record");
+  Serial.println(":ssaaaatthhhh...hhcc - accepts hex intel record");
   Serial.println(";ssss-eeee    - Generate hex intel data records");
   Serial.println("E             - Generate hex intel end record");
   Serial.println("Test commands");  
