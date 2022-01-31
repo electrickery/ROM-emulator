@@ -9,9 +9,9 @@ ToDo: - implement host isolation control to disable non-tristate signals
         generation too. Not sure this is really useful.
 */
 
-#define VERSION "v0.6"
+#define VERSION "v0.6c"
 
-#define SERIALBUFSIZE         80
+#define SERIALBUFSIZE         90
 char serialBuffer[SERIALBUFSIZE];
 byte setBufPointer = 0;
 
@@ -33,6 +33,7 @@ unsigned int addressOffset = 0;
 
 void setup() {
   Serial.begin(9600);
+  delay(500);  
   Serial.print("ROMemu ");
   Serial.println(VERSION);
  
@@ -46,8 +47,6 @@ void loop() {
   commandCollector();
 }  
  
-
-
 void commandCollector() {
   if (Serial.available() > 0) {
     int inByte = Serial.read();
@@ -103,6 +102,10 @@ void commandInterpreter() {
 //      Serial.println("F?:");
       usage();
       break; 
+    case 'M':
+    case 'm':
+      modifyMem(); // modify memory location
+      break;
     case 'S':
     case 's':
       setValue(); // fill memory range with a value
@@ -145,16 +148,13 @@ void setOffset() {
     return; 
   }
   addressOffset = get16BitValue(1);
-//  addressOffset  = getNibble(serialBuffer[1]) * (1 << 12);
-//  addressOffset += getNibble(serialBuffer[2]) * (1 << 8);
-//  addressOffset += getNibble(serialBuffer[3]) * (1 << 4);
-//  addressOffset += getNibble(serialBuffer[4]);
+
   Serial.print("Address offset: ");
   printWord(addressOffset);
   Serial.println();
 }
 
-int getNibble(unsigned char myChar) {
+int getNibble(byte myChar) {
   int nibble = myChar;
   if (nibble > 'F') nibble -= ' ';  // lower to upper case
   nibble -= '0';
@@ -162,10 +162,32 @@ int getNibble(unsigned char myChar) {
   return nibble;
 }
 
+void modifyMem() {
+  unsigned int address  = get16BitValue(1);
+  byte newData = get8BitValue(6);
+  Serial.print("M:");
+  printWord(address);
+  Serial.print("-");
+//  printByte(newData);
+//  Serial.print("/");
+  onlineReadMode();
+  byte oldData = readByte(address);
+  printByte(oldData);
+  Serial.print(" > ");
+  onlineWriteMode();
+  writeByte(address, newData);
+  onlineReadMode();
+  byte checkData = readByte(address);
+  printByte(checkData);
+  offlineMode();
+  Serial.println();
+}
+
 void copyData() {
   unsigned int startAddress  = get16BitValue(1);
   unsigned int endAddress    = get16BitValue(6);
   unsigned int targetAddress = get16BitValue(11);
+  Serial.print("C:");
   printWord(startAddress);
   Serial.print("-");
   printWord(endAddress);
@@ -197,11 +219,6 @@ void copyData() {
         writeByte(t, d);
         offlineMode();
         c++;
-//      Serial.print("copy up ");
-//      printWord(s);
-//      Serial.print(" > ");
-//      printWord(t);
-//      Serial.println();
       }
       Serial.print(c, HEX);
       Serial.println("h bytes copied");
@@ -224,11 +241,6 @@ void copyData() {
         writeByte(te, d);
         offlineMode();
         c++;
-//      Serial.print("copy down ");
-//      printWord(e);  
-//      Serial.print(" > ");
-//      printWord(te);
-//      Serial.println();          
     }
       Serial.print(c, HEX);
       Serial.println("h bytes copied");
@@ -262,7 +274,8 @@ void dumpMemory() {
   Serial.print("-");
   printWord(endAddress);
   Serial.println();
-  unsigned int i, data;
+  unsigned int i;
+  byte data;
   onlineReadMode();
   for (i = startAddress; i < endAddress; i++) {
     positionOnLine = i & 0x0F;
@@ -271,6 +284,7 @@ void dumpMemory() {
       Serial.print(": ");
     }
     data = readByte(i);
+
     printByte(data);   // actual value in hex 
     asChars[positionOnLine] = (data >= ' ' && data <= '~') ? data : '.';
     if ((i & 0x03) == 0x03) Serial.print(" ");
@@ -292,16 +306,8 @@ void dumpMemory() {
 void generateDataRecords() {
   unsigned int startAddress;
   unsigned int endAddress;
-    startAddress = get16BitValue(1);
-    endAddress   = get16BitValue(6);
-//  startAddress  = getNibble(serialBuffer[1]) * (1 << 12);
-//  startAddress += getNibble(serialBuffer[2]) * (1 << 8);
-//  startAddress += getNibble(serialBuffer[3]) * (1 << 4);
-//  startAddress += getNibble(serialBuffer[4]);
-//  endAddress  = getNibble(serialBuffer[6]) * (1 << 12);
-//  endAddress += getNibble(serialBuffer[7]) * (1 << 8);
-//  endAddress += getNibble(serialBuffer[8]) * (1 << 4);
-//  endAddress += getNibble(serialBuffer[9]);
+  startAddress = get16BitValue(1);
+  endAddress   = get16BitValue(6);
   printWord(startAddress);
   Serial.print("-");
   printWord(endAddress);
@@ -354,8 +360,8 @@ void hexIntelInterpreter() {
   sumCheck += addressMSB;
   sumCheck += addressLSB;
   baseAddress = (addressMSB << 8) + addressLSB;
-  printWord(baseAddress - addressOffset);
-  Serial.println();
+//  printWord(baseAddress - addressOffset);
+//  Serial.println();
   unsigned int recordType;
   recordType  = getNibble(serialBuffer[7]) * (1 << 4);
   recordType += getNibble(serialBuffer[8]);
@@ -368,7 +374,7 @@ void hexIntelInterpreter() {
   }
   sumCheck +=  recordType;
   unsigned int i, sbOffset;
-  unsigned int value;
+  byte value;
   onlineWriteMode();
   for (i = 0; i < count; i++) {
     sbOffset = (i * 2) + 9;
@@ -376,10 +382,6 @@ void hexIntelInterpreter() {
     value += getNibble(serialBuffer[sbOffset + 1]); 
     sumCheck +=  value;
     writeByte(baseAddress + i - addressOffset, value);
-//    printWord(baseAddress + i - addressOffset);
-//    Serial.print(": ");
-//    printByte(value);
-//    Serial.println();
   }
   offlineMode();
   unsigned sumCheckValue;
@@ -388,16 +390,19 @@ void hexIntelInterpreter() {
   sumCheckValue += getNibble(serialBuffer[sbOffset + 1]);
   sumCheck += sumCheckValue;
   sumCheck &= 0xFF;
-  if (sumCheck != 0) {
+  if (sumCheck == 0) {
+    printWord(baseAddress - addressOffset);
+    Serial.println();
+  } else {
     Serial.print("Sumcheck incorrect: ");
     printByte(sumCheck); 
   }
 }
 
-unsigned int readByte(unsigned int address) {
-  unsigned int data = 0;
-  unsigned int addressLSB = address & 0xFF;
-  unsigned int addressMSB = address >> 8;
+byte readByte(unsigned int address) {
+  byte data = 0;
+  byte addressLSB = address & 0xFF;
+  byte addressMSB = address >> 8;
   PORTA = 0xFF;
   DDRA  = 0x00;
   PORTL = addressLSB;
@@ -417,9 +422,9 @@ void clearSerialBuffer() {
   }
 }
 
-void writeByte(unsigned int address, unsigned int value) {
-  unsigned int addressLSB = address & 0xFF;
-  unsigned int addressMSB = address >> 8;
+void writeByte(unsigned int address, byte value) {
+  byte addressLSB = address & 0xFF;
+  byte addressMSB = address >> 8;
   
   PORTA = value;
   PORTL = addressLSB;
@@ -431,9 +436,9 @@ void writeByte(unsigned int address, unsigned int value) {
   digitalWrite(CS, HIGH);
 }
 
-void printByte(unsigned char data) {
-  unsigned char dataMSN = data >> 4;
-  unsigned char dataLSN = data & 0x0F;
+void printByte(byte data) {
+  byte dataMSN = data >> 4;
+  byte dataLSN = data & 0x0F;
   Serial.print(dataMSN, HEX);
   Serial.print(dataLSN, HEX);
 }
@@ -494,22 +499,23 @@ void onlineReadMode() { // Disable host access to RAM, enable data bus, address 
 void usage() {
   Serial.print("-- ROM emulator ");
   Serial.print(VERSION);
-  Serial.println(" command set");
   Serial.println("Operational commands:");
-  Serial.println("Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt");
-  Serial.println("D[ssss[-eeee]]- Dump memory from ssss to eeee");
-  Serial.println("Fhhhh         - AddressOffset; subtracted from hex intel addresses");
-  Serial.println("H             - This help text");
-  Serial.println(":ssaaaatthhhh...hhcc - accepts hex intel record");
-  Serial.println(";ssss-eeee    - Generate hex intel data records");
-  Serial.println("E             - Generate hex intel end record");
+  Serial.println(" Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt");
+  Serial.println(" D[ssss[-eeee]]- Dump memory from ssss to eeee");
+  Serial.println(" Fhhhh         - AddressOffset; subtracted from hex intel addresses");
+  Serial.println(" H             - This help text");
+  Serial.println(" :ssaaaatthhhh...hhcc - accepts hex intel record");
+  Serial.println(" ;ssss-eeee    - Generate hex intel data records");
+  Serial.println(" E             - Generate hex intel end record");
+  Serial.println(" Maaaa-dd      - Modify memory");
   Serial.println("Test commands");  
-  Serial.println("Bpp           - blink pin p (in hex)");
-  Serial.println("Sssss-eeee:v  - fill a memory range with a value");
-  Serial.println("Tp            - exercise port p");
-  Serial.println("V             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE");
-  Serial.println("Wpp v         - Write pin (in hex) values 0, 1");
-  Serial.println("?             - This help text"); 
+  Serial.println(" Bpp           - blink pin p (in hex)");
+  Serial.println(" Sssss-eeee:v  - fill a memory range with a value");
+  Serial.println(" Tp            - exercise port p");//      Serial.print("copy up ");
+
+  Serial.println(" V             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE");
+  Serial.println(" Wpp v         - Write pin (in hex) values 0, 1");
+  Serial.println(" ?             - This help text"); 
 }
 
 void portTest(byte port) {
@@ -577,8 +583,7 @@ void portTest(byte port) {
 
 void blinkPin() {
   int pin;
-  pin  = getNibble(serialBuffer[1]) * (1 << 4);
-  pin += getNibble(serialBuffer[2]);
+  pin  = get8BitValue(1);
   
   pinMode(pin, OUTPUT);
   while(1) {
@@ -590,25 +595,23 @@ void blinkPin() {
 void setValue() {
   unsigned int startAddress;
   unsigned int endAddress;
-  unsigned char value;
-    startAddress = get16BitValue(1);
-    endAddress   = get16BitValue(6);
-//  startAddress  = getNibble(serialBuffer[1]) * (1 << 12);
-//  startAddress += getNibble(serialBuffer[2]) * (1 << 8);
-//  startAddress += getNibble(serialBuffer[3]) * (1 << 4);
-//  startAddress += getNibble(serialBuffer[4]);
-//  endAddress  = getNibble(serialBuffer[6]) * (1 << 12);
-//  endAddress += getNibble(serialBuffer[7]) * (1 << 8);
-//  endAddress += getNibble(serialBuffer[8]) * (1 << 4);
-//  endAddress += getNibble(serialBuffer[9]);
-  value  = getNibble(serialBuffer[11]) * (1 << 4);
-  value += getNibble(serialBuffer[12]);
+  byte value;
+  startAddress = get16BitValue(1);
+  endAddress   = get16BitValue(6);
+  value        = get8BitValue(11);
   
   onlineWriteMode();
   unsigned int i;
-  for (i = startAddress; i < endAddress; i++) {
+  for (i = startAddress; i <= endAddress; i++) {
     writeByte(i, value);
   }
+  Serial.print("S:");
+  printWord(startAddress);
+  Serial.print("-");
+  printWord(endAddress);
+  Serial.print(" with ");
+  printByte(value);
+  Serial.println();
   offlineMode();
 }
 
@@ -671,4 +674,12 @@ unsigned int get16BitValue(byte index) {
   address += getNibble(serialBuffer[i++]) * (1 << 4);
   address += getNibble(serialBuffer[i++]);
   return address;
+}
+
+byte get8BitValue(byte index) {
+  byte i = index;
+  byte data;
+  data  = getNibble(serialBuffer[i++]) * (1 << 4);
+  data += getNibble(serialBuffer[i++]);
+  return data;
 }
