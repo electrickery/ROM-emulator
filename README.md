@@ -31,6 +31,6 @@ Current command set of the Arduino sketch:
 
 The KiCAD-files contain the projects for the shield, adapter and socket-PCBs. The first two have fixes from testing the previous produced boards.  
 
-Ther is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
+There is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
 
 F.J. Kraan, 2020-12-24
