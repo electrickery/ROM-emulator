@@ -9,7 +9,7 @@ ToDo: - implement host isolation control to disable non-tristate signals
         generation too. Not sure this is really useful.
 */
 
-#define VERSION "v0.6c"
+#define VERSION "v0.7"
 
 #define SERIALBUFSIZE         90
 char serialBuffer[SERIALBUFSIZE];
@@ -90,7 +90,7 @@ void commandInterpreter() {
       break;
     case 'E':
     case 'e':
-      generateEndRecord();
+      generateExorciserIRecord();
       break;  
     case 'F':  // set offset address
     case 'f':
@@ -126,7 +126,7 @@ void commandInterpreter() {
       hexIntelInterpreter();
       break;
     case ';':
-      generateDataRecords();
+      generateHexIntelRecords();
       break;
     default:
       Serial.print(bufByte);
@@ -134,6 +134,28 @@ void commandInterpreter() {
       Serial.println("unsupported");
       return;
   }
+}
+
+void usage() {
+  Serial.print("-- ROM emulator ");
+  Serial.print(VERSION);
+  Serial.println("Operational commands:");
+  Serial.println(" Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt");
+  Serial.println(" D[ssss[-eeee]]- Dump memory from ssss to eeee");
+  Serial.println(" Fhhhh         - AddressOffset; subtracted from hex intel addresses");
+  Serial.println(" H             - This help text");
+  Serial.println(" :ssaaaatthhhh...hhcc - accepts hex intel record");
+  Serial.println(" ;ssss-eeee    - Generate hex intel data records");
+  Serial.println(" E             - Generate hex intel end record");
+  Serial.println(" Maaaa-dd      - Modify memory");
+  Serial.println("Test commands");  
+  Serial.println(" Bpp           - blink pin p (in hex)");
+  Serial.println(" Sssss-eeee:v  - fill a memory range with a value");
+  Serial.println(" Tp            - exercise port p");//      Serial.print("copy up ");
+
+  Serial.println(" V             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE");
+  Serial.println(" Wpp v         - Write pin (in hex) values 0, 1");
+  Serial.println(" ?             - This help text"); 
 }
 
 void setOffset() {
@@ -152,14 +174,6 @@ void setOffset() {
   Serial.print("Address offset: ");
   printWord(addressOffset);
   Serial.println();
-}
-
-int getNibble(byte myChar) {
-  int nibble = myChar;
-  if (nibble > 'F') nibble -= ' ';  // lower to upper case
-  nibble -= '0';
-  if (nibble > 9) nibble -= 7; // offset 9+1 - A
-  return nibble;
 }
 
 void modifyMem() {
@@ -303,7 +317,65 @@ void dumpMemory() {
   Serial.println();
 }
 
-void generateDataRecords() {
+/*
+ * S1ccnnnndddd..ddss
+ *   | |   |       |
+ *   | |   |       sumcheck
+ *   | |   data
+ *   | address
+ *   byte count 
+ *
+ */
+void generateExorciserIRecord() {
+  unsigned int startAddress;
+  unsigned int endAddress;
+  startAddress = get16BitValue(1);
+  endAddress   = get16BitValue(6);
+  printWord(startAddress);
+  Serial.print("-");
+  printWord(endAddress);
+  Serial.println();
+
+  unsigned int i, j;
+  unsigned char addressMSB, addressLSB, data;
+  unsigned char sumCheckCount = 0;
+
+  onlineReadMode();  
+  for (i = startAddress; i < endAddress; i += RECORDSIZE) {
+    sumCheckCount = 0;
+    Serial.print("S1");
+    printByte(RECORDSIZE);  
+    sumCheckCount -= RECORDSIZE;
+    addressMSB = i >> 8;
+    addressLSB = i & 0xFF;
+    printByte(addressMSB);
+    printByte(addressLSB);
+    sumCheckCount -= addressMSB;
+    sumCheckCount -= addressLSB;
+    printByte(DATARECORDTYPE);
+    sumCheckCount -= DATARECORDTYPE;
+    for (j = 0; j < RECORDSIZE; j++) {
+      data = readByte(i + j);
+      printByte(data);
+      sumCheckCount -= data;
+    }
+    printByte(sumCheckCount);
+    Serial.println();
+  }
+  offlineMode();
+  Serial.println("S9030000FC");
+}
+
+/*
+ * :ccnnnn00dddd..ddss
+ *  | |   | |       |
+ *  | |   | |       sum check
+ *  | |   | data
+ *  | |   record type
+ *  | address
+ */
+
+void generateHexIntelRecords() {
   unsigned int startAddress;
   unsigned int endAddress;
   startAddress = get16BitValue(1);
@@ -342,7 +414,7 @@ void generateDataRecords() {
   offlineMode();
 }
 
-void generateEndRecord() {
+void generateEndHIRecord() {
   Serial.println(":00000001FF");
 }
 
@@ -494,28 +566,6 @@ void onlineReadMode() { // Disable host access to RAM, enable data bus, address 
   pinMode(CS, OUTPUT);
   pinMode(ARDUINOONLINE, OUTPUT); 
   digitalWrite(ARDUINOONLINE, HIGH);
-}
-
-void usage() {
-  Serial.print("-- ROM emulator ");
-  Serial.print(VERSION);
-  Serial.println("Operational commands:");
-  Serial.println(" Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt");
-  Serial.println(" D[ssss[-eeee]]- Dump memory from ssss to eeee");
-  Serial.println(" Fhhhh         - AddressOffset; subtracted from hex intel addresses");
-  Serial.println(" H             - This help text");
-  Serial.println(" :ssaaaatthhhh...hhcc - accepts hex intel record");
-  Serial.println(" ;ssss-eeee    - Generate hex intel data records");
-  Serial.println(" E             - Generate hex intel end record");
-  Serial.println(" Maaaa-dd      - Modify memory");
-  Serial.println("Test commands");  
-  Serial.println(" Bpp           - blink pin p (in hex)");
-  Serial.println(" Sssss-eeee:v  - fill a memory range with a value");
-  Serial.println(" Tp            - exercise port p");//      Serial.print("copy up ");
-
-  Serial.println(" V             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE");
-  Serial.println(" Wpp v         - Write pin (in hex) values 0, 1");
-  Serial.println(" ?             - This help text"); 
 }
 
 void portTest(byte port) {
@@ -682,4 +732,12 @@ byte get8BitValue(byte index) {
   data  = getNibble(serialBuffer[i++]) * (1 << 4);
   data += getNibble(serialBuffer[i++]);
   return data;
+}
+
+int getNibble(byte myChar) {
+  int nibble = myChar;
+  if (nibble > 'F') nibble -= ' ';  // lower to upper case
+  nibble -= '0';
+  if (nibble > 9) nibble -= 7; // offset 9+1 - A
+  return nibble;
 }
