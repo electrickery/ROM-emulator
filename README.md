@@ -11,26 +11,28 @@ The current hardware version 1.1 uses an Arduino Mega 2560 with a shield contain
 
 Current command set of the Arduino sketch:
 
-	-- ROM emulator v0.5 command set
-	Operational commands:
-	D[ssss[-eeee]]- Dump memory from ssss to eeee
-	Fhhhh         - AddressOffset; subtracted from hex intel addresses
-	H             - This help text
-	:ssaaaatthhhh...hhcc - accepts hex intel record
-	;ssss-eeee    - Generate hex intel data records
-	E             - Generate hex intel end record
-	Test commands
-	Bpp           - blink pin p (in hex)
-	Sssss-eeee:v  - fill a memory range with a value
-	Tp            - exercise port p
-	V             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE
-	Wpp v         - Write pin (in hex) values 0, 1
-	?             - This help text
-
+		-- ROM emulator v0.8 --
+		Operational commands:
+ 		Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt
+ 		D[ssss[-eeee]]- Dump memory from ssss to eeee
+ 		Fhhhh         - AddressOffset; subtracted from hex intel addresses
+ 		H             - This help text
+ 		:ssaaaatthhhh...hhcc - accepts hex intel record
+ 		;ssss-eeee    - Generate hex intel data records
+ 		E             - Generate hex intel end record
+ 		Kssss-eeee    - Generate checksums for address range
+ 		Maaaa-dd      - Modify memory
+		Test commands
+ 		Bpp           - blink pin p (in hex)
+ 		Sssss-eeee:v  - fill a memory range with a value
+ 		Tp            - exercise port p
+ 		V             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE
+ 		Wpp v         - Write pin (in hex) values 0, 1
+ 		?             - This help text
 
 
 The KiCAD-files contain the projects for the shield, adapter and socket-PCBs. The first two have fixes from testing the previous produced boards.  
 
 There is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
 
-F.J. Kraan, 2020-12-24
+F.J. Kraan, 2023-01-14
