@@ -9,7 +9,7 @@ ToDo: - implement host isolation control to disable non-tristate signals
         generation too. Not sure this is really useful.
 */
 
-#define VERSION "v0.7"
+#define VERSION "v0.8"
 
 #define SERIALBUFSIZE         90
 char serialBuffer[SERIALBUFSIZE];
@@ -102,6 +102,10 @@ void commandInterpreter() {
 //      Serial.println("F?:");
       usage();
       break; 
+    case 'K':
+    case 'k':
+      calcChecksum(); // calculate variouos checksums
+      break;
     case 'M':
     case 'm':
       modifyMem(); // modify memory location
@@ -139,6 +143,7 @@ void commandInterpreter() {
 void usage() {
   Serial.print("-- ROM emulator ");
   Serial.print(VERSION);
+  Serial.println(" --");
   Serial.println("Operational commands:");
   Serial.println(" Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt");
   Serial.println(" D[ssss[-eeee]]- Dump memory from ssss to eeee");
@@ -147,6 +152,7 @@ void usage() {
   Serial.println(" :ssaaaatthhhh...hhcc - accepts hex intel record");
   Serial.println(" ;ssss-eeee    - Generate hex intel data records");
   Serial.println(" E             - Generate hex intel end record");
+  Serial.println(" Kssss-eeee    - Generate checksums for address range");
   Serial.println(" Maaaa-dd      - Modify memory");
   Serial.println("Test commands");  
   Serial.println(" Bpp           - blink pin p (in hex)");
@@ -740,4 +746,51 @@ int getNibble(byte myChar) {
   nibble -= '0';
   if (nibble > 9) nibble -= 7; // offset 9+1 - A
   return nibble;
+}
+
+void calcChecksum() {
+  unsigned int startAddress;
+  unsigned int endAddress;
+  unsigned char value;
+  // Cssss eeee
+  startAddress = get16BitValue(1);
+  endAddress   = get16BitValue(6);
+
+  Serial.print("Checksum block ");
+  Serial.print(startAddress, HEX);
+  Serial.print("h - ");
+  Serial.print(endAddress, HEX);
+  Serial.print("h : ");
+  unsigned long checkSum = blockChecksum(startAddress, endAddress);
+  uint8_t andOrChecksum = andOrDiff(startAddress, endAddress);
+  Serial.print(checkSum, HEX);
+  Serial.print("h, ");
+  Serial.print(checkSum, DEC);
+  Serial.print(", ");
+  Serial.print(checkSum & 0xFF, DEC);
+  Serial.print(", and/or: ");
+  Serial.print(andOrChecksum, DEC);  
+  Serial.println();
+}
+
+unsigned int blockChecksum(unsigned long startAddress, unsigned long endAddress)
+{
+  onlineReadMode();
+  unsigned long checksum = 0;
+  for (unsigned long i=startAddress; i<=endAddress; i++) {
+    checksum += readByte(i);  
+  }
+  offlineMode();
+  return checksum;
+}
+
+uint8_t andOrDiff(unsigned long startAddress, unsigned long endAddress)
+{
+  onlineReadMode();
+  uint8_t checksum = 0;
+  for (unsigned long i=startAddress; i<=endAddress; i++) {
+    checksum = (readByte(i) & checksum) - (readByte(i) | checksum); //  P = (Q OR P) - (Q AND P)
+  }
+  offlineMode();
+  return checksum;
 }
