@@ -1,44 +1,29 @@
 #!/usr/bin/python3
 #
-#version 0.2
 
 import sys
 import serial
 import time
-import argparse
 
-port = '/dev/ttyACM0'
-baud = 9600
-parser = argparse.ArgumentParser(description='Send hex-intel file to ROM Emulator.')
-parser.add_argument('-p', '--port', type=str, nargs='?',
-                    help='Serial port to use (9600 BAUD)')
-parser.add_argument('-x', '--hexFile', type=str, nargs='?',
-                    help='hex-Intel file')
-parser.add_argument('-o', '--offset', type=str, nargs='?',
-                    help='offset to target address')               
+port         = '/dev/ttyACM0'
+hexOffsetStr = ""
 
-args = parser.parse_args()
+if len(sys.argv) == 1:
+   print("Usage: python3 romEmuFeed.py <hexFile> [<ttyPort>] [<hexOffset>]")
+   exit()
+if len(sys.argv) > 1:
+    hexFile = sys.argv[1]
+if len(sys.argv) > 2:
+    port = sys.argv[2]
+if len(sys.argv) > 3:
+    hexOffsetStr = "F" + sys.argv[3]
 
-if (args.port):
-    port = args.port
-    
-if (args.offset):
-    offsetStr = "F" + args.offset
-else:
-    offsetStr = ""
-
-if (args.hexFile):
-    hexFile = args.hexFile
-else:
-    print("Usage: python3 romEmuFeed.py  -x HEXFILE [-p PORT] [-o OFFSET]")
-    print("       default port is " + port + ", default offset is " + hex(offset))
-    quit(1)
-
-
-ser = serial.Serial(port, baud, timeout=2)  # open serial port
 LF = "\r\n"
 sendDelay = 0.05
 time.sleep(sendDelay)
+
+ser = serial.Serial(port, 9600, timeout=2)  # open serial port
+
 print(ser.readline())
 
 file = open(hexFile, 'r')
@@ -48,8 +33,8 @@ file.close()
 print(ser.readline().strip())
 time.sleep(sendDelay)
 
-if offsetStr:
-    ser.write(str.encode(offsetStr + LF))
+if hexOffsetStr:
+    ser.write(str.encode(hexOffsetStr + LF))
     print(ser.readline().strip())
     time.sleep(sendDelay)
 
