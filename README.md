@@ -34,6 +34,10 @@ Current command set of the Arduino sketch:
 
 The KiCAD-files contain the projects for the shield, adapter and socket-PCBs. The first two have fixes from testing the previous produced boards.  
 
+For downloading hex-Intel files the romEmuFeed.py is provided. It supports an offset address option for data that doesn't start at 0000h. The actual address in the CPU memory map is determined by the PCB circuit, inot the emulator. So data usually needs to be starting at 0000h (of the emulator RAM).
+
+    Usage: python3 romEmuFeed.py <hexFile> [<ttyPort>] [<hexOffset>]
+
 There is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
 
 F.J. Kraan, 2023-02-09
