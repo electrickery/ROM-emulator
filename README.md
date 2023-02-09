@@ -11,7 +11,7 @@ The current hardware version 1.1 uses an Arduino Mega 2560 with a shield contain
 
 Current command set of the Arduino sketch:
 
-		-- ROM emulator v0.8 --
+		-- ROM emulator v0.9 --
 		 Operational commands:
  		Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt
  		D[ssss[-eeee]]- Dump memory from ssss to eeee
@@ -22,6 +22,7 @@ Current command set of the Arduino sketch:
  		E             - Generate hex intel end record
  		Kssss-eeee    - Generate checksums for address range
  		Maaaa-dd      - Modify memory
+                O             - Toggle echo
 		 Test commands:
  		Bpp           - blink pin p (in hex)
  		Sssss-eeee:v  - fill a memory range with a value
@@ -35,4 +36,4 @@ The KiCAD-files contain the projects for the shield, adapter and socket-PCBs. Th
 
 There is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
 
-F.J. Kraan, 2023-01-14
+F.J. Kraan, 2023-02-09

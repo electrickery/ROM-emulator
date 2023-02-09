@@ -9,7 +9,7 @@ ToDo: - implement host isolation control to disable non-tristate signals
         generation too. Not sure this is really useful.
 */
 
-#define VERSION "v0.8"
+#define VERSION "v0.9"
 
 #define SERIALBUFSIZE         90
 char serialBuffer[SERIALBUFSIZE];
@@ -29,6 +29,9 @@ byte setBufPointer = 0;
 unsigned int lastEndAddress = 0;
 
 unsigned int addressOffset = 0;
+
+bool echo = 0;
+
 // core routines
 
 void setup() {
@@ -50,16 +53,16 @@ void loop() {
 void commandCollector() {
   if (Serial.available() > 0) {
     int inByte = Serial.read();
+    if (echo) Serial.write(inByte);
     switch(inByte) {
+    case '\r':
+      if (!echo) break; // cr only works with echo on
     case '.':
-//    case '\r':
     case '\n':
       commandInterpreter();
       clearSerialBuffer();
       setBufPointer = 0;
       break;
-    case '\r':
-      break;  // ignore carriage return
     default:
       serialBuffer[setBufPointer] = inByte;
       setBufPointer++;
@@ -110,6 +113,10 @@ void commandInterpreter() {
     case 'm':
       modifyMem(); // modify memory location
       break;
+    case 'O':
+    case 'o':
+      echoManagement(); // control echo
+      break;
     case 'S':
     case 's':
       setValue(); // fill memory range with a value
@@ -154,6 +161,7 @@ void usage() {
   Serial.println(" E             - Generate hex intel end record");
   Serial.println(" Kssss-eeee    - Generate checksums for address range");
   Serial.println(" Maaaa-dd      - Modify memory");
+  Serial.println(" O             - Toggle echo");
   Serial.println("Test commands");  
   Serial.println(" Bpp           - blink pin p (in hex)");
   Serial.println(" Sssss-eeee:v  - fill a memory range with a value");
@@ -793,4 +801,20 @@ uint8_t andOrDiff(unsigned long startAddress, unsigned long endAddress)
   }
   offlineMode();
   return checksum;
+}
+
+// e - toggle echo; e0 - echo off, e1 - echo on
+void echoManagement() {
+  if (setBufPointer == 1) {
+    echo = !echo;
+    printEchoState();
+  } else {
+    Serial.println("unsupported"); 
+  }
+}
+
+void printEchoState() {
+    if (echo) {
+      Serial.println("echo on");
+    }  
 }
