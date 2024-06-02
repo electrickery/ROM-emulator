@@ -5,7 +5,7 @@ Emulate a small size ROM with a RAM and Arduino with Intel-HEX interface
 
 ROMemu is a combination of software and hardware that allows the usage of modern software development tools for simple, old style single board computer systems. It emulates an (EP)ROM programmer to the development software and an in-circuit ROM/RAM on the board.
 
-The software (Arduino sketch) is version 0.8.
+The software (Arduino sketch) is version 0.9.
 
 The current hardware version 1.1 uses an Arduino Mega 2560 with a shield containing a 32 kByte RAM-chip which is (partially) readable by the SBC-processor. The Arduino USB-connection is available as serial port to the development system. This allows to write Intel-hex data to the RAM.
 
