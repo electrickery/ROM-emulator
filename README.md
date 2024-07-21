@@ -45,6 +45,8 @@ romEmuFeed.py program. It can select and configure the serial port, download Hex
 monitor and control the ROM Emulator. It is developed and somewhat tested on Linux, but should work
 on Windows and MacOS to (courtesy of the wxTerminal.py it is based on).
 
+![Serial port configuration window](serialPortConfig.png) ![Terminal window](terminalWindow.png)
+
 There is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
 
 F.J. Kraan, 2024-06-02
