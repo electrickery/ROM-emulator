@@ -9,6 +9,8 @@ The software (Arduino sketch) is version 0.9.
 
 The current hardware version 1.1 uses an Arduino Mega 2560 with a shield containing a 32 kByte RAM-chip which is (partially) readable by the target board processor. The Arduino USB-connection is available as serial port to the development system. This allows to write Intel-hex data to the RAM.
 
+The problems with the 1.1 version are probably solved with the 1.3 version. This version awaits production and testing.
+
 Current command set of the Arduino sketch:
 
 		- ROM emulator v0.9 --
@@ -40,7 +42,7 @@ For downloading hex-Intel files the romEmuFeed.py is provided. It supports three
     
 The script could very well work for Windows and MacOS, but is untested.
 
-A new and experimental download tool is the 'wxRerminalRE.py' applucation, a GUI replacement for the 
+A new and experimental download tool is the 'wxRerminalRE.py' application, a GUI replacement for the 
 romEmuFeed.py program. It can select and configure the serial port, download Hex-intel files and 
 monitor and control the ROM Emulator. It is developed and somewhat tested on Linux, but should work
 on Windows and MacOS to (courtesy of the wxTerminal.py it is based on).
@@ -49,4 +51,4 @@ on Windows and MacOS to (courtesy of the wxTerminal.py it is based on).
 
 There is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
 
-F.J. Kraan, 2024-06-02
+F.J. Kraan, 2024-07-27
