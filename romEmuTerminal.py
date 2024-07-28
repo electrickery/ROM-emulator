@@ -38,7 +38,7 @@ import wxSerialConfigDialog
 #    unichr = chr
 unichr = chr 
 
-VERSION = 0.2 
+VERSION = 0.3 
   
 print("Version:           " + str(VERSION)) 
 print("Python version:    " + sys.version)
@@ -562,6 +562,8 @@ class TerminalFrame(wx.Frame):
                 self.serial.write((lineStrip + LF).encode())
                 time.sleep(sendDelay)
             f.close()
+            byteStr = ("File: " + self.dirname + "/" + self.filename + " downloaded.\r\n").encode()
+            self.text_ctrl_output.AppendText(byteStr)
         dlg.Destroy()
 
 
