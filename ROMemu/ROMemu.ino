@@ -9,7 +9,7 @@ ToDo: - implement host isolation control to disable non-tristate signals
         generation too. Not sure this is really useful.
 */
 
-#define VERSION "v0.9"
+#define VERSION "v0.10.3"
 
 #define SERIALBUFSIZE         90
 char serialBuffer[SERIALBUFSIZE];
@@ -21,11 +21,13 @@ byte setBufPointer = 0;
 #define OE 16            // 0x10
 #define WR 6             // 0x06
 #define ARDUINOONLINE 7  // 0x07
+#define RELAYPIN 8       
 
 #define RECORDSIZE 16
 #define DATARECORDTYPE 0
 
 #define DUMPPAGE 0x0100
+#define RELAYDELAY 100L
 unsigned int lastEndAddress = 0;
 
 unsigned int addressOffset = 0;
@@ -41,6 +43,8 @@ void setup() {
   Serial.println(VERSION);
  
   pinMode(LED, OUTPUT);
+  digitalWrite(RELAYPIN, HIGH);
+  pinMode(RELAYPIN, OUTPUT);
   offlineMode();
   delay(1000);  
 }
@@ -93,7 +97,7 @@ void commandInterpreter() {
       break;
     case 'E':
     case 'e':
-      generateExorciserIRecord();
+      generateEndHIRecord();
       break;  
     case 'F':  // set offset address
     case 'f':
@@ -120,6 +124,10 @@ void commandInterpreter() {
     case 'S':
     case 's':
       setValue(); // fill memory range with a value
+      break;
+    case 'R':
+    case 'r':
+      setRelay(); // set/reset relay
       break;
     case 'T':  // test ports
     case 't':
@@ -437,13 +445,13 @@ void hexIntelInterpreter() {
   unsigned int sumCheck = 0;
   count  = getNibble(serialBuffer[1]) * (1 << 4);
   count += getNibble(serialBuffer[2]);
-  sumCheck += count;
+  sumCheck += count;                                    // add record length
   unsigned int addressLSB, addressMSB, baseAddress;
   addressMSB  = getNibble(serialBuffer[3]) * (1 << 4);
   addressMSB += getNibble(serialBuffer[4]);
   addressLSB  = getNibble(serialBuffer[5]) * (1 << 4);
   addressLSB += getNibble(serialBuffer[6]);
-  sumCheck += addressMSB;
+  sumCheck += addressMSB;                                    // add address bytes
   sumCheck += addressLSB;
   baseAddress = (addressMSB << 8) + addressLSB;
 //  printWord(baseAddress - addressOffset);
@@ -458,7 +466,7 @@ void hexIntelInterpreter() {
   if (recordType != 0) { // ignore all but data records
     return; 
   }
-  sumCheck +=  recordType;
+  sumCheck +=  recordType;                                    // add record type
   unsigned int i, sbOffset;
   byte value;
   onlineWriteMode();
@@ -466,23 +474,29 @@ void hexIntelInterpreter() {
     sbOffset = (i * 2) + 9;
     value  = getNibble(serialBuffer[sbOffset]) * (1 << 4);
     value += getNibble(serialBuffer[sbOffset + 1]); 
-    sumCheck +=  value;
+    sumCheck +=  value;                                    // add data bytes
     writeByte(baseAddress + i - addressOffset, value);
   }
   offlineMode();
-  unsigned sumCheckValue;
+  unsigned int sumCheckValue = 0;
+
   sbOffset += 2;
   sumCheckValue  = getNibble(serialBuffer[sbOffset]) * (1 << 4);
   sumCheckValue += getNibble(serialBuffer[sbOffset + 1]);
-  sumCheck += sumCheckValue;
+  sumCheck += sumCheckValue;                                    // add received checksum
   sumCheck &= 0xFF;
   if (sumCheck == 0) {
     printWord(baseAddress - addressOffset);
-    Serial.println();
-  } else {
-    Serial.print("Sumcheck incorrect: ");
-    printByte(sumCheck); 
-  }
+    Serial.println(" Ok.");
+   } else {
+     Serial.print("Sumcheck incorrect for ");
+     printWord(baseAddress);
+  //   Serial.print(" received: ");
+  //   printByte(sumCheckValue);
+  //   Serial.print(", calculated: "); 
+  //   printByte(sumCheck); 
+     Serial.println();
+   }
 }
 
 byte readByte(unsigned int address) {
@@ -817,4 +831,33 @@ void printEchoState() {
     if (echo) {
       Serial.println("echo on");
     }  
+}
+
+void relayOff() {
+  digitalWrite(RELAYPIN, HIGH);
+}
+
+void relayOn() {
+  digitalWrite(RELAYPIN, LOW);
+}
+
+void setRelay() {
+  if (setBufPointer == 1) {             // no argument, echo state
+    Serial.print(digitalRead(RELAYPIN));
+  } else if (setBufPointer == 2) {      // one argument, set relay
+//      Serial.print("Relay ");
+    if (serialBuffer[1] == '1') {       // arg is "1", switch on
+      relayOn();
+//      Serial.print(!digitalRead(RELAYPIN));
+    } else if (serialBuffer[1] == '0') { // arg is "0", switch off
+      relayOff();
+//      Serial.print(!digitalRead(RELAYPIN));      
+    } else {
+      Serial.print("? ");
+      Serial.print(serialBuffer[1]);
+    }
+  } else {                              //  two or more arguments, error
+    Serial.println("unsupported"); 
+  }
+  Serial.println();
 }

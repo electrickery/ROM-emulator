@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Rom Emulator Terminal 0.2
+# Rom Emulator Terminal 0.3.2
 #
 # Terminal/download application for use with the 
 # Arduino Mega 2560 based ROM Emulator
@@ -11,6 +11,9 @@
 # CLI romEmuFeed.py program, allowing downloading
 # of HEX-intel files to the ROM Emulator and control 
 # the settings.
+#
+# Note self.serial writes to the Arduino and self.text_ctrl_output writes
+# to the terminal console.
 #
 # Adapted from:
 #
@@ -38,7 +41,8 @@ import wxSerialConfigDialog
 #    unichr = chr
 unichr = chr 
 
-VERSION = 0.3 
+VERSION = '0.3.1'
+RESETSW = True
   
 print("Version:           " + str(VERSION)) 
 print("Python version:    " + sys.version)
@@ -105,8 +109,8 @@ class SerialConfigDialog(wx.Dialog):
         self.checkbox_rtscts = wx.CheckBox(self.panel_flow, -1, "RTS/CTS")
         self.checkbox_xonxoff = wx.CheckBox(self.panel_flow, -1, "Xon/Xoff")
         self.sizer_flow_staticbox = wx.StaticBox(self.panel_flow, -1, "Flow Control")
-        self.button_ok = wx.Button(self, wx.ID_OK, "")
         self.button_cancel = wx.Button(self, wx.ID_CANCEL, "")
+        self.button_ok = wx.Button(self, wx.ID_OK, "")
 
         self.__set_properties()
         self.__do_layout()
@@ -201,17 +205,17 @@ class SerialConfigDialog(wx.Dialog):
 
     def __do_layout(self):
         # begin wxGlade: SerialConfigDialog.__do_layout
-        sizer_2 = wx.BoxSizer(wx.VERTICAL)
-        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_2 = wx.BoxSizer(wx.VERTICAL)      # Data Format
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)    # Cancel / OK
         self.sizer_flow_staticbox.Lower()
         sizer_flow = wx.StaticBoxSizer(self.sizer_flow_staticbox, wx.HORIZONTAL)
         self.sizer_timeout_staticbox.Lower()
         sizer_timeout = wx.StaticBoxSizer(self.sizer_timeout_staticbox, wx.HORIZONTAL)
         self.sizer_format_staticbox.Lower()
         sizer_format = wx.StaticBoxSizer(self.sizer_format_staticbox, wx.VERTICAL)
-        grid_sizer_1 = wx.FlexGridSizer(3, 2, 0, 0)
+        grid_sizer_1 = wx.FlexGridSizer(3, 2, 0, 0) 
         self.sizer_1_staticbox.Lower()
-        sizer_1 = wx.StaticBoxSizer(self.sizer_1_staticbox, wx.VERTICAL)
+        sizer_1 = wx.StaticBoxSizer(self.sizer_1_staticbox, wx.VERTICAL) # Basics; Port / Baudrate
         sizer_basics = wx.FlexGridSizer(3, 2, 0, 0)
         sizer_basics.Add(self.label_2, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
         sizer_basics.Add(self.choice_port, 0, wx.EXPAND, 0)
@@ -239,8 +243,8 @@ class SerialConfigDialog(wx.Dialog):
         sizer_flow.Add((10, 10), 1, wx.EXPAND, 0)
         self.panel_flow.SetSizer(sizer_flow)
         sizer_2.Add(self.panel_flow, 0, wx.EXPAND, 0)
-        sizer_3.Add(self.button_ok, 0, 0, 0)
         sizer_3.Add(self.button_cancel, 0, 0, 0)
+        sizer_3.Add(self.button_ok, 0, 0, 0)
         sizer_2.Add(sizer_3, 0, wx.ALL | wx.ALIGN_RIGHT, 4)
         self.SetSizer(sizer_2)
         sizer_2.Fit(self)
@@ -334,6 +338,7 @@ NEWLINE_CRLF = 2
 
 LF = "\n"
 sendDelay = 0.05
+resetDelay = 0.5
 
 class TerminalSetup:
     """
@@ -359,8 +364,8 @@ class TerminalSettingsDialog(wx.Dialog):
         self.checkbox_unprintable = wx.CheckBox(self, -1, "Show unprintable characters")
         self.radio_box_newline = wx.RadioBox(self, -1, "Newline Handling", choices=["CR only", "LF only", "CR+LF"], majorDimension=0, style=wx.RA_SPECIFY_ROWS)
         self.sizer_4_staticbox = wx.StaticBox(self, -1, "Input/Output")
-        self.button_ok = wx.Button(self, wx.ID_OK, "")
         self.button_cancel = wx.Button(self, wx.ID_CANCEL, "")
+        self.button_ok = wx.Button(self, wx.ID_OK, "")
 
         self.__set_properties()
         self.__do_layout()
@@ -552,18 +557,27 @@ class TerminalFrame(wx.Frame):
         """ Open a file"""
         self.dirname = ''
         dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.*", wx.FD_OPEN)
+        
         if dlg.ShowModal() == wx.ID_OK:
+            if RESETSW:
+                self.serial.write(("R1" + LF).encode())
+                time.sleep(resetDelay)
+                self.text_ctrl_output.AppendText(("Relay on" + LF).encode())
             self.filename = dlg.GetFilename()
             self.dirname = dlg.GetDirectory()
             f = open(os.path.join(self.dirname, self.filename), 'r')
             for line in f.readlines():
-                print(line)
+                print(line.strip())
                 lineStrip = line.strip()
                 self.serial.write((lineStrip + LF).encode())
                 time.sleep(sendDelay)
             f.close()
-            byteStr = ("File: " + self.dirname + "/" + self.filename + " downloaded.\r\n").encode()
+            byteStr = ("File: '" + self.dirname + "/" + self.filename + "' downloaded.\r\n").encode()
             self.text_ctrl_output.AppendText(byteStr)
+            if RESETSW:
+                self.serial.write(("R0" + LF).encode())
+                time.sleep(resetDelay)
+                self.text_ctrl_output.AppendText(("Relay off" + LF).encode())
         dlg.Destroy()
 
 
