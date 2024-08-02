@@ -170,7 +170,8 @@ void usage() {
   Serial.println(" Kssss-eeee    - Generate checksums for address range");
   Serial.println(" Maaaa-dd      - Modify memory");
   Serial.println(" O             - Toggle echo");
-  Serial.println("Test commands");  
+  Serial.println(" R[0|1]        - Switch the RESET relay");
+  Serial.println("Test commands:");  
   Serial.println(" Bpp           - blink pin p (in hex)");
   Serial.println(" Sssss-eeee:v  - fill a memory range with a value");
   Serial.println(" Tp            - exercise port p");//      Serial.print("copy up ");
