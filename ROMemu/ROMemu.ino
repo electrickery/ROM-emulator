@@ -9,7 +9,7 @@ ToDo: - implement host isolation control to disable non-tristate signals
         generation too. Not sure this is really useful.
 */
 
-#define VERSION "v0.10.3"
+#define VERSION "v0.11.0"
 
 #define SERIALBUFSIZE         90
 char serialBuffer[SERIALBUFSIZE];
@@ -83,6 +83,10 @@ void commandInterpreter() {
   byte bufByte = serialBuffer[0];
   
   switch(bufByte) {
+    case 'A':
+    case 'a':
+      ramTest();
+      break;
     case 'B':
     case 'b':
       blinkPin();
@@ -172,6 +176,7 @@ void usage() {
   Serial.println(" O             - Toggle echo");
   Serial.println(" R[0|1]        - Switch the RESET relay");
   Serial.println("Test commands:");  
+  Serial.println(" A             - test 32 kByte RAM with 00h, 55h. AAh and FFh patterns");
   Serial.println(" Bpp           - blink pin p (in hex)");
   Serial.println(" Sssss-eeee:v  - fill a memory range with a value");
   Serial.println(" Tp            - exercise port p");//      Serial.print("copy up ");
@@ -861,4 +866,68 @@ void setRelay() {
     Serial.println("unsupported"); 
   }
   Serial.println();
+}
+
+#define RAMSTART 0x0000
+#define RAMEND   0x7FFF
+
+void ramTest() {
+  bool firstPhase = 1;
+  Serial.println("32k Byte RAM test");
+  Serial.println(" Phase 1: ?? > 0x00");
+  if (!ramTestPhase(firstPhase, 0, 0)) {
+    return;
+  }
+  firstPhase = 0;
+  Serial.println(" Phase 2: 0x00 > 0x55");
+  if (!ramTestPhase(firstPhase, 0, 0x55)) {
+    return;
+  }
+  Serial.println(" Phase 3: 0x55 > 0xAA");
+  if (!ramTestPhase(firstPhase, 0x55, 0xAA)) {
+    return;
+  }
+  Serial.println(" Phase 4: 0xAA > 0xFF");
+  if (!ramTestPhase(firstPhase, 0xAA, 0xFF)) {
+    return;
+  }
+  Serial.println("RAM test OK");
+}
+
+bool ramTestPhase(bool firstPhase, byte expectValue, byte newValue) {
+  bool success = 0;
+  for (int i = RAMSTART; i < RAMEND; i++) {
+    byte returnValue;
+    if (!firstPhase) {
+      onlineReadMode();
+      returnValue = readByte(i);
+      if (returnValue != expectValue) {
+        Serial.print("  memory at ");
+        Serial.print(i, HEX);
+        Serial.print("not expected ");
+        Serial.print(expectValue, HEX);
+        Serial.print(" but ");
+        Serial.println(returnValue, HEX);
+        offlineMode();
+        return success;
+      }
+    }
+    onlineWriteMode();
+    writeByte(i, newValue);
+    onlineReadMode();
+    returnValue = readByte(i);
+    if (returnValue != newValue) {
+      Serial.print(" memory at ");
+      Serial.print(i, HEX);
+      Serial.print("not new ");
+      Serial.print(newValue, HEX);
+      Serial.print(" but ");
+      Serial.println(returnValue, HEX);
+      offlineMode();
+      return success;
+    }
+  }
+  offlineMode();
+  success = 1;
+  return success;
 }

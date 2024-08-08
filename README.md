@@ -27,7 +27,8 @@ Current command set of the Arduino sketch:
  		O             - Toggle echo
  		R[0|1]        - Switch the RESET relay
 		Test commands:
- 		Bpp           - blink pin p (in hex)
+                A             - test 32 kByte RAM with 00h, 55h. AAh and FFh patterns
+		Bpp           - blink pin p (in hex)
  		Sssss-eeee:v  - fill a memory range with a value
  		Tp            - exercise port p
  		V             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE
@@ -52,4 +53,4 @@ on Windows and MacOS to (courtesy of the wxTerminal.py it is based on).
 
 There is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
 
-F.J. Kraan, 2024-08-02
+F.J. Kraan, 2024-08-08
