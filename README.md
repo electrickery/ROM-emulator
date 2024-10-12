@@ -57,14 +57,15 @@ Current command set of the Arduino sketch:
 
 ## Hardware
 
-The current hardware version 1.1 uses an Arduino Mega 2560 with a shield 
-containing a 32 kByte RAM-chip which is (partially) readable by the target 
-board processor. The Arduino USB-connection is available as serial port 
-to the development system. This allows to write Intel-hex data to the RAM.
+The current hardware version 1.3 is shield for the Arduino Mega 2560. The shield 
+contains a 32 kByte RAM-chip which is (partially) readable by the target 
+board processor via the pod for 24 or 28 pin sockets. The Arduino USB-connection 
+is available as serial port to the development system. This allows to write 
+Intel-hex data to the RAM.
 
-The problems with the 1.1 version are probably solved with the 1.3 version. 
-This version awaits production and testing.
-
+The problems with the 1.1 version are solved with the 1.3 version. 
+This version is in testing, but hasn't room for the relay. This might result
+in a new board later.
 
 The KiCAD-files contain the projects for the shield, adapter and socket-
 PCBs. The first two have fixes from testing the previous produced boards.  
@@ -92,4 +93,4 @@ on Windows and MacOS to (courtesy of the wxTerminal.py it is based on).
 
 There is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
 
-F.J. Kraan, 2024-08-08
+F.J. Kraan, 2024-10-11
