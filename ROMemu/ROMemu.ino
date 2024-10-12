@@ -9,7 +9,7 @@ ToDo: - implement host isolation control to disable non-tristate signals
         generation too. Not sure this is really useful.
 */
 
-#define VERSION "v0.11.0"
+#define VERSION "v0.11.3"
 
 #define SERIALBUFSIZE         90
 char serialBuffer[SERIALBUFSIZE];
@@ -121,21 +121,29 @@ void commandInterpreter() {
     case 'm':
       modifyMem(); // modify memory location
       break;
+    case 'N':
+    case 'n':
+      fillMemory(); // fill memory range
+      break;
     case 'O':
     case 'o':
       echoManagement(); // control echo
-      break;
-    case 'S':
-    case 's':
-      setValue(); // fill memory range with a value
       break;
     case 'R':
     case 'r':
       setRelay(); // set/reset relay
       break;
+    case 'S':
+    case 's':
+      motoExorciserS1Interpreter(); // Motorola Exorciser S1 record
+      break;
     case 'T':  // test ports
     case 't':
       portTest(serialBuffer[1]);
+      break;
+    case 'U':
+    case 'u':
+      setValue();
       break;
     case 'V':
     case 'v':
@@ -166,22 +174,23 @@ void usage() {
   Serial.println("Operational commands:");
   Serial.println(" Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt");
   Serial.println(" D[ssss[-eeee]]- Dump memory from ssss to eeee");
+  Serial.println(" E             - Generate hex intel end record");
   Serial.println(" Fhhhh         - AddressOffset; subtracted from hex intel addresses");
   Serial.println(" H             - This help text");
   Serial.println(" :ssaaaatthhhh...hhcc - accepts hex intel record");
   Serial.println(" ;ssss-eeee    - Generate hex intel data records");
-  Serial.println(" E             - Generate hex intel end record");
   Serial.println(" Kssss-eeee    - Generate checksums for address range");
   Serial.println(" Maaaa-dd      - Modify memory");
   Serial.println(" O             - Toggle echo");
   Serial.println(" R[0|1]        - Switch the RESET relay");
+  Serial.println(" S1ccnnnndddd..ddss - accepts Motorola Exorciser S1 record");
   Serial.println("Test commands:");  
   Serial.println(" A             - test 32 kByte RAM with 00h, 55h. AAh and FFh patterns");
   Serial.println(" Bpp           - blink pin p (in hex)");
-  Serial.println(" Sssss-eeee:v  - fill a memory range with a value");
+  Serial.println(" Nssss-eeee:v  - fill a memory range with a value");
   Serial.println(" Tp            - exercise port p");//      Serial.print("copy up ");
 
-  Serial.println(" V             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE");
+  Serial.println(" U             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE");
   Serial.println(" Wpp v         - Write pin (in hex) values 0, 1");
   Serial.println(" ?             - This help text"); 
 }
@@ -290,6 +299,31 @@ void copyData() {
   offlineMode();
 }
 
+void fillMemory() {
+  unsigned int startAddress  = get16BitValue(1);
+  unsigned int endAddress    = get16BitValue(6);
+  unsigned int value = get8BitValue(11);
+  Serial.print("N:");
+  printWord(startAddress);
+  Serial.print("-");
+  printWord(endAddress);
+  Serial.print("-");
+  printByte(value);
+  Serial.println();
+        
+  if (startAddress > endAddress) {
+    Serial.println("Error: negative range. Aborting."); 
+    return;
+  }
+  unsigned int s;
+  onlineWriteMode();
+  for (s = startAddress; s <= endAddress; s++) {
+    writeByte(s, value);
+  }
+  offlineMode();
+
+}
+
 void dumpMemory() {
   unsigned int startAddress;
   unsigned int endAddress;
@@ -348,7 +382,7 @@ void dumpMemory() {
 /*
  * S1ccnnnndddd..ddss
  *   | |   |       |
- *   | |   |       sumcheck
+ *   | |   |       sumcheck (one-complement of summantion of byte count, address and data bytes)
  *   | |   data
  *   | address
  *   byte count 
@@ -501,6 +535,52 @@ void hexIntelInterpreter() {
   //   printByte(sumCheckValue);
   //   Serial.print(", calculated: "); 
   //   printByte(sumCheck); 
+     Serial.println();
+   }
+}
+
+// S1ccnnnndddd..ddss
+void motoExorciserS1Interpreter() {
+  unsigned int count;
+  unsigned int sumCheck = 0;
+  // 1st byte should be '1', record type
+  unsigned int recordType = serialBuffer[1];
+  if (recordType != '1') {
+    return;                     // Ignore ap=ll record types other than 'S1'
+  }
+  count  = get8BitValue(2);
+  sumCheck += count;                                    // add record length
+  count -= 3;                           // correct count to actual data bytes
+  unsigned int baseAddressMSB = get8BitValue(4);
+  unsigned int baseAddressLSB = get8BitValue(6);
+  sumCheck += baseAddressMSB;  // MSB
+  sumCheck += baseAddressLSB;  // LSB
+  unsigned int baseAddress = baseAddressMSB * (1 << 8) + baseAddressLSB;
+  unsigned int i, sbOffset;
+  byte value;
+  onlineWriteMode();
+  for (i = 0; i < count; i++) {
+    sbOffset = (i * 2) + 8;
+    value  = get8BitValue(sbOffset);
+    sumCheck +=  value;                                    // add data bytes
+    writeByte(baseAddress + i - addressOffset, value);
+  }
+  offlineMode();
+  unsigned int sumCheckReceived = 0;
+  
+  sbOffset += 2;
+  sumCheckReceived  = get8BitValue(sbOffset);
+  sumCheck = 0xFF - sumCheck;
+  if (sumCheck == sumCheckReceived) {
+    printWord(baseAddress - addressOffset);
+    Serial.println(" Ok.");
+   } else {
+     Serial.print("Sumcheck incorrect for ");
+     printWord(baseAddress);
+     Serial.print(" received: ");
+     printByte(sumCheckReceived);
+     Serial.print(", calculated: "); 
+     printByte(sumCheck); 
      Serial.println();
    }
 }
