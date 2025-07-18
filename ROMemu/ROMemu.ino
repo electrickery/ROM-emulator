@@ -9,7 +9,7 @@ ToDo: - implement host isolation control to disable non-tristate signals
         generation too. Not sure this is really useful.
 */
 
-#define VERSION "v0.11.3"
+#define VERSION "v0.11.4"
 
 #define SERIALBUFSIZE         90
 char serialBuffer[SERIALBUFSIZE];
@@ -539,17 +539,33 @@ void hexIntelInterpreter() {
    }
 }
 
-// S1ccnnnndddd..ddss
+// S1ccnnnndddd..ddss or S9030000FC end record
 void motoExorciserS1Interpreter() {
   unsigned int count;
   unsigned int sumCheck = 0;
+  unsigned int sumCheckReceived = 0;  
   // 1st byte should be '1', record type
   unsigned int recordType = serialBuffer[1];
+
+  if (recordType == '9') {
+    sumCheckReceived = get8BitValue(8);
+    unsigned int endRecordChecksum = 0xFC;
+    if (sumCheckReceived == endRecordChecksum) {
+      Serial.println(F("End record Ok."));
+    } else {
+      Serial.print(F("Sumcheck incorrect for end record received: "));
+      printByte(sumCheckReceived);
+      Serial.print(F(", should be: ")); 
+      printByte(endRecordChecksum);
+      Serial.println();
+    }
+    return;                     // process 'S9'
+  }
   if (recordType != '1') {
     return;                     // Ignore ap=ll record types other than 'S1'
   }
   count  = get8BitValue(2);
-  sumCheck += count;                                    // add record length
+  sumCheck += count;                    // add record length
   count -= 3;                           // correct count to actual data bytes
   unsigned int baseAddressMSB = get8BitValue(4);
   unsigned int baseAddressLSB = get8BitValue(6);
@@ -566,11 +582,10 @@ void motoExorciserS1Interpreter() {
     writeByte(baseAddress + i - addressOffset, value);
   }
   offlineMode();
-  unsigned int sumCheckReceived = 0;
   
   sbOffset += 2;
   sumCheckReceived  = get8BitValue(sbOffset);
-  sumCheck = 0xFF - sumCheck;
+  sumCheck = 0xFF & (0xFF - sumCheck);
   if (sumCheck == sumCheckReceived) {
     printWord(baseAddress - addressOffset);
     Serial.println(" Ok.");

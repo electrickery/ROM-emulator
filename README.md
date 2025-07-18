@@ -28,7 +28,7 @@ when the ROM disappears from its memory.
 
 ## Firmware
 
-The software (Arduino sketch) is version 0.11.3.
+The software (Arduino sketch) is version 0.11.4.
 
 Current command set of the Arduino sketch:
 
@@ -83,7 +83,7 @@ at 0000h (of the emulator RAM).
     
 The script could very well work for Windows and MacOS, but is untested.
 
-A new and experimental download tool is the 'wxRerminalRE.py' application, 
+A new and experimental download tool is the 'romEmuTerminal.py' application, 
 a GUI replacement for the romEmuFeed.py program. It can select and configure 
 the serial port, download Hex-intel files and monitor and control the ROM 
 Emulator. It is developed and somewhat tested on Linux, but should work 
@@ -93,4 +93,4 @@ on Windows and MacOS to (courtesy of the wxTerminal.py it is based on).
 
 There is a Hackaday page at: https://hackaday.io/project/175610-rom-emulator
 
-F.J. Kraan, 2024-10-11
+F.J. Kraan, 2025-07-18
