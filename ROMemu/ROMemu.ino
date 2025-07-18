@@ -107,6 +107,10 @@ void commandInterpreter() {
     case 'f':
       setOffset();
       break; 
+    case 'G':  // set offset address
+    case 'g':
+      generateExorciserIRecord();
+      break; 
     case 'H':  // help
     case 'h':
     case '?':  // help
@@ -168,31 +172,32 @@ void commandInterpreter() {
 }
 
 void usage() {
-  Serial.print("-- ROM emulator ");
+  Serial.print(F("-- ROM emulator "));
   Serial.print(VERSION);
-  Serial.println(" --");
-  Serial.println("Operational commands:");
-  Serial.println(" Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt");
-  Serial.println(" D[ssss[-eeee]]- Dump memory from ssss to eeee");
-  Serial.println(" E             - Generate hex intel end record");
-  Serial.println(" Fhhhh         - AddressOffset; subtracted from hex intel addresses");
-  Serial.println(" H             - This help text");
-  Serial.println(" :ssaaaatthhhh...hhcc - accepts hex intel record");
-  Serial.println(" ;ssss-eeee    - Generate hex intel data records");
-  Serial.println(" Kssss-eeee    - Generate checksums for address range");
-  Serial.println(" Maaaa-dd      - Modify memory");
-  Serial.println(" O             - Toggle echo");
-  Serial.println(" R[0|1]        - Switch the RESET relay");
-  Serial.println(" S1ccnnnndddd..ddss - accepts Motorola Exorciser S1 record");
-  Serial.println("Test commands:");  
-  Serial.println(" A             - test 32 kByte RAM with 00h, 55h. AAh and FFh patterns");
-  Serial.println(" Bpp           - blink pin p (in hex)");
-  Serial.println(" Nssss-eeee:v  - fill a memory range with a value");
-  Serial.println(" Tp            - exercise port p");//      Serial.print("copy up ");
+  Serial.println(F(" --"));
+  Serial.println(F("Operational commands:"));
+  Serial.println(F(" Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt"));
+  Serial.println(F(" D[ssss[-eeee]]- Dump memory from ssss to eeee"));
+  Serial.println(F(" E             - Generate hex intel end record"));
+  Serial.println(F(" Fhhhh         - AddressOffset; subtracted from hex intel addresses"));
+  Serial.println(F(" Gssss-eeee    - Generate checksums for address range"));
+  Serial.println(F(" H             - This help text"));
+  Serial.println(F(" :ssaaaatthhhh...hhcc - accepts hex intel record"));
+  Serial.println(F(" ;ssss-eeee    - Generate hex intel data records"));
+  Serial.println(F(" Kssss-eeee    - Generate checksums for address range"));
+  Serial.println(F(" Maaaa-dd      - Modify memory"));
+  Serial.println(F(" O             - Toggle echo"));
+  Serial.println(F(" R[0|1]        - Switch the RESET relay"));
+  Serial.println(F(" S1ccnnnndddd..ddss - accepts Motorola Exorciser S1 record"));
+  Serial.println(F("Test commands:"));  
+  Serial.println(F(" A             - test 32 kByte RAM with 00h, 55h. AAh and FFh patterns"));
+  Serial.println(F(" Bpp           - blink pin p (in hex)"));
+  Serial.println(F(" Nssss-eeee:v  - fill a memory range with a value"));
+  Serial.println(F(" Tp            - exercise port p"));//      Serial.print("copy up ");
 
-  Serial.println(" U             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE");
-  Serial.println(" Wpp v         - Write pin (in hex) values 0, 1");
-  Serial.println(" ?             - This help text"); 
+  Serial.println(F(" U             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE"));
+  Serial.println(F(" Wpp v         - Write pin (in hex) values 0, 1"));
+  Serial.println(F(" ?             - This help text")); 
 }
 
 void setOffset() {
@@ -406,22 +411,20 @@ void generateExorciserIRecord() {
   for (i = startAddress; i < endAddress; i += RECORDSIZE) {
     sumCheckCount = 0;
     Serial.print("S1");
-    printByte(RECORDSIZE);  
-    sumCheckCount -= RECORDSIZE;
+    printByte(RECORDSIZE + 3);  
+    sumCheckCount += RECORDSIZE + 3;
     addressMSB = i >> 8;
     addressLSB = i & 0xFF;
     printByte(addressMSB);
     printByte(addressLSB);
-    sumCheckCount -= addressMSB;
-    sumCheckCount -= addressLSB;
-    printByte(DATARECORDTYPE);
-    sumCheckCount -= DATARECORDTYPE;
+    sumCheckCount += addressMSB;
+    sumCheckCount += addressLSB;
     for (j = 0; j < RECORDSIZE; j++) {
       data = readByte(i + j);
       printByte(data);
-      sumCheckCount -= data;
+      sumCheckCount += data;
     }
-    printByte(sumCheckCount);
+    printByte(0xFF & (0xFF - sumCheckCount));
     Serial.println();
   }
   offlineMode();

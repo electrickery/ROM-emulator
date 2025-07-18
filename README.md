@@ -32,28 +32,29 @@ The software (Arduino sketch) is version 0.11.4.
 
 Current command set of the Arduino sketch:
 
-	-- ROM emulator v0.11.3 --
-	Operational commands:
- 	Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt
- 	D[ssss[-eeee]]- Dump memory from ssss to eeee
- 	E             - Generate hex intel end record
- 	Fhhhh         - AddressOffset; subtracted from hex intel addresses
- 	H             - This help text
- 	:ssaaaatthhhh...hhcc - accepts hex intel record
- 	;ssss-eeee    - Generate hex intel data records
- 	Kssss-eeee    - Generate checksums for address range
- 	Maaaa-dd      - Modify memory
- 	O             - Toggle echo
- 	R[0|1]        - Switch the RESET relay
- 	S1ccnnnndddd..ddss - accepts Motorola Exorciser S1 record
-	Test commands:
- 	A             - test 32 kByte RAM with 00h, 55h. AAh and FFh patterns
- 	Bpp           - blink pin p (in hex)
- 	Nssss-eeee:v  - fill a memory range with a value
- 	Tp            - exercise port p
- 	U             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE
- 	Wpp v         - Write pin (in hex) values 0, 1
- 	?             - This help text
+        -- ROM emulator v0.11.4 --
+        Operational commands:
+         Cssss-eeee-tttt - Copy data in range from ssss-eeee to tttt
+         D[ssss[-eeee]]- Dump memory from ssss to eeee
+         E             - Generate hex intel end record
+         Fhhhh         - AddressOffset; subtracted from hex intel addresses
+         Gssss-eeee    - Generate checksums for address range
+         H             - This help text
+         :ssaaaatthhhh...hhcc - accepts hex intel record
+         ;ssss-eeee    - Generate hex intel data records
+         Kssss-eeee    - Generate checksums for address range
+         Maaaa-dd      - Modify memory
+         O             - Toggle echo
+         R[0|1]        - Switch the RESET relay
+         S1ccnnnndddd..ddss - accepts Motorola Exorciser S1 record
+        Test commands:
+         A             - test 32 kByte RAM with 00h, 55h. AAh and FFh patterns
+         Bpp           - blink pin p (in hex)
+         Nssss-eeee:v  - fill a memory range with a value
+         Tp            - exercise port p
+         U             - view ports C, L, A, CS, OE, WR, ARDUINOONLINE
+         Wpp v         - Write pin (in hex) values 0, 1
+         ?             - This help text
 
 ## Hardware
 
@@ -72,7 +73,7 @@ PCBs. The first two have fixes from testing the previous produced boards.
 
 ## Support software
 
-For downloading hex-Intel files the romEmuFeed.py is provided. It supports 
+For downloading hex-Intel or hex-S19 files the romEmuFeed.py is provided. It supports 
 three arguments; the hex file, the serial port (optional, '/dev/ttyACM0' 
 is default) and an optional offset address (in hex) for data that doesn't 
 start at 0000h. The actual address in the CPU memory map is determined by 
