@@ -38,7 +38,7 @@ Current command set of the Arduino sketch:
          D[ssss[-eeee]]- Dump memory from ssss to eeee
          E             - Generate hex intel end record
          Fhhhh         - AddressOffset; subtracted from hex intel addresses
-         Gssss-eeee    - Generate checksums for address range
+         Gssss-eeee    - Generate Motorola Exorciser S1 records
          H             - This help text
          :ssaaaatthhhh...hhcc - accepts hex intel record
          ;ssss-eeee    - Generate hex intel data records
