@@ -180,7 +180,7 @@ void usage() {
   Serial.println(F(" D[ssss[-eeee]]- Dump memory from ssss to eeee"));
   Serial.println(F(" E             - Generate hex intel end record"));
   Serial.println(F(" Fhhhh         - AddressOffset; subtracted from hex intel addresses"));
-  Serial.println(F(" Gssss-eeee    - Generate checksums for address range"));
+  Serial.println(F(" Gssss-eeee    - Generate Motorola Exorciser S1 records"));
   Serial.println(F(" H             - This help text"));
   Serial.println(F(" :ssaaaatthhhh...hhcc - accepts hex intel record"));
   Serial.println(F(" ;ssss-eeee    - Generate hex intel data records"));
